@@ -37,7 +37,7 @@ namespace semasio_challenge_2.Models
 
     public class TvStrategy: Strategy
     {
-        
+        public ChannelSlot[] ChannelSlots { get; set; }
     }
 
     public class OutdoorStrategy: Strategy
