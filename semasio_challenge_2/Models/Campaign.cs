@@ -13,7 +13,7 @@ namespace semasio_challenge_2.Models
 
         public string Name {get; set;}
 
-        public Strategy[] StrategyList {get; set;}
+        public Strategy[] Strategies {get; set;}
 
         public int CampaignBudget {get; set;}
 

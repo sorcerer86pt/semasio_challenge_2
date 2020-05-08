@@ -1,10 +1,14 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-
+using MongoDB.Bson.Serialization.IdGenerators;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
 
 namespace semasio_challenge_2.Models
 {
 
+    
     public enum StrategyType
     {
         Online,
@@ -16,7 +20,12 @@ namespace semasio_challenge_2.Models
     [BsonKnownTypes(typeof(OnlineStrategy), typeof(TvStrategy), typeof(OutdoorStrategy))]
     public class Strategy
     {
+        [BsonId(IdGenerator = typeof(GuidGenerator))]
         [BsonRepresentation(BsonType.String)]
+        public Guid Id { get; set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]  // JSON.Net
+        [BsonRepresentation(BsonType.String)]         // Mongo
         public StrategyType StrategyType {get; set;}
 
         public int StrategyBudget {get; set;}

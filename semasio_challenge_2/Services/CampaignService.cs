@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace semasio_challenge_2.Services
@@ -24,7 +25,7 @@ namespace semasio_challenge_2.Services
         /**
          * Returns all campaigns
          */
-        public async Task<List<Campaign>> Get() => await _campaigns.Find(cpg => true).ToListAsync();
+        public async Task<List<Campaign>> Get() => await _campaigns.Find(cpg=>true).ToListAsync();
 
         public async Task<Campaign> Get(string campaignId)
         {
@@ -87,17 +88,21 @@ namespace semasio_challenge_2.Services
         {
             Campaign campaignRecord = _campaigns.Find(cpg => cpg.Id == Guid.Parse(campaignID)).FirstOrDefault();
             int campaignBudget = campaignRecord.CampaignBudget;
-            int numStrategies = campaignRecord.StrategyList.Length;
+            int numStrategies = campaignRecord.Strategies.Length;
 
             int equalBudget = campaignBudget / numStrategies;
 
-            // let mongodb do the array work :-)
-            var update = Builders<Campaign>.Update.Set(cpg=> cpg.StrategyList[-1].StrategyBudget, equalBudget);
-            _campaigns.UpdateManyAsync(cpg => cpg.Id == Guid.Parse(campaignID), update);
+            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id ,Guid.Parse(campaignID));
+
+
+            var campaignUpdate = Builders<Campaign>.Update.Set(cpg=> cpg.CampaignBudget, 0);
+            var strategyUpdate = Builders<Campaign>.Update.Set(cpg => cpg.Strategies[-1].StrategyBudget, equalBudget);
+
+            // update the each strategy budget to equal value
+            _campaigns.UpdateMany(campaignFilter, strategyUpdate);
 
             // update the campaign budget to 0, since we've distributed all the budget to the strategies
-            var campaignUpdate = Builders<Campaign>.Update.Set(cpg=> cpg.CampaignBudget, 0);
-            _campaigns.UpdateOneAsync(cpg => cpg.Id == Guid.Parse(campaignID), campaignUpdate);
+            _campaigns.UpdateOne(campaignFilter, campaignUpdate);
             
 
         }
