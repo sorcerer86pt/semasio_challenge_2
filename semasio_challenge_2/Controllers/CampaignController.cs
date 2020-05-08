@@ -63,7 +63,7 @@ namespace semasio_challenge_2.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<Campaign>> Delete(string id)
         {
-            var s = await _campaignService.Get(id);
+            var s = await _campaignService.Remove(id);
             if (s == null)
             {
                 return NotFound();

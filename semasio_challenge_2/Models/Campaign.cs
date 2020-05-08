@@ -7,9 +7,9 @@ namespace semasio_challenge_2.Models
 {
     public class Campaign
     {
-        [BsonId(IdGenerator = typeof(GuidGenerator))]
-        [BsonRepresentation(BsonType.String)]
-        public Guid Id {get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id {get; set; }
 
         public string Name {get; set;}
 

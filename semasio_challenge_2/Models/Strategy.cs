@@ -25,7 +25,7 @@ namespace semasio_challenge_2.Models
         public Guid Id { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]  // JSON.Net
-        [BsonRepresentation(BsonType.String)]         // Mongo
+        [BsonRepresentation(BsonType.String)]  // Mongo
         public StrategyType StrategyType {get; set;}
 
         public int StrategyBudget {get; set;}

@@ -25,11 +25,11 @@ namespace semasio_challenge_2.Services
         /**
          * Returns all campaigns
          */
-        public async Task<List<Campaign>> Get() => await _campaigns.Find(cpg=>true).ToListAsync();
+        public async Task<List<Campaign>> Get() => await _campaigns.Find(Builders<Campaign>.Filter.Empty).ToListAsync();
 
         public async Task<Campaign> Get(string campaignId)
         {
-            return await _campaigns.Find(cpg => cpg.Id == Guid.Parse(campaignId)).FirstOrDefaultAsync();
+            return await _campaigns.Find(cpg => cpg.Id == campaignId).FirstOrDefaultAsync();
         }
 
         public async Task<Campaign> Create(Campaign campaign)
@@ -52,13 +52,14 @@ namespace semasio_challenge_2.Services
 
         public async Task<Campaign> Update(string id, Campaign campaign)
         {
-            await _campaigns.ReplaceOneAsync(cpgupd => cpgupd.Id == Guid.Parse(id), campaign);
+            await _campaigns.ReplaceOneAsync(cpgupd => cpgupd.Id ==id , campaign);
             return campaign;
         }
 
-        public async Task Remove(string id)
+        public async Task<DeleteResult> Remove(string id)
         {
-            await _campaigns.DeleteOneAsync(cpgdel => cpgdel.Id == Guid.Parse(id));
+            var filter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id, id);
+            return await _campaigns.DeleteOneAsync(filter);
         }
 
         public async Task DistributeBudget(string id)
@@ -86,13 +87,13 @@ namespace semasio_challenge_2.Services
          */
         private void DivideBudgetEqually(string campaignID)
         {
-            Campaign campaignRecord = _campaigns.Find(cpg => cpg.Id == Guid.Parse(campaignID)).FirstOrDefault();
+            Campaign campaignRecord = _campaigns.Find(cpg => cpg.Id == campaignID).FirstOrDefault();
             int campaignBudget = campaignRecord.CampaignBudget;
             int numStrategies = campaignRecord.Strategies.Length;
 
             int equalBudget = campaignBudget / numStrategies;
 
-            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id ,Guid.Parse(campaignID));
+            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id ,campaignID);
 
 
             var campaignUpdate = Builders<Campaign>.Update.Set(cpg=> cpg.CampaignBudget, 0);
