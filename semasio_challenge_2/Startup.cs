@@ -1,16 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-
+using Microsoft.OpenApi.Models;
+using semasio_challenge_2.Services;
 namespace semasio_challenge_2
 {
     public class Startup
@@ -26,6 +20,16 @@ namespace semasio_challenge_2
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers();
+            // add our service
+            services.AddScoped<CampaignService>();
+            services.AddSwaggerGen(config=>{
+                config.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "Campaign API",
+                    Version = "v1.0",
+                    Description = "Campaign CRUD API"
+                });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -34,6 +38,13 @@ namespace semasio_challenge_2
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
+
+                // Enable middleware to serve generated Swagger as a JSON endpoint.
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("v1/swagger.json", "My Campaign API V1");
+                });
             }
 
             app.UseHttpsRedirection();
@@ -45,6 +56,12 @@ namespace semasio_challenge_2
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+            });
+
+            app.UseSwagger();
+            app.UseSwaggerUI (config=>
+            {
+                config.SwaggerEndpoint("v1/swagger.json", "My Campaign API V1");
             });
         }
     }

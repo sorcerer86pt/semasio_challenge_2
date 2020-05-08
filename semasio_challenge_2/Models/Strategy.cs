@@ -16,10 +16,6 @@ namespace semasio_challenge_2.Models
     [BsonKnownTypes(typeof(OnlineStrategy), typeof(TvStrategy), typeof(OutdoorStrategy))]
     public class Strategy
     {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public string Id {get; set; }
-
         [BsonRepresentation(BsonType.String)]
         public StrategyType StrategyType {get; set;}
 
