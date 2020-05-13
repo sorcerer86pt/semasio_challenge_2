@@ -23,7 +23,8 @@ namespace semasio_challenge_2
                     .AddNewtonsoftJson(options => options.UseMemberCasing());
             // add our service
             services.AddScoped<CampaignService>();
-            services.AddSwaggerGen(config=>{
+            services.AddSwaggerGen(config =>
+            {
                 config.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "Campaign API",
@@ -60,10 +61,10 @@ namespace semasio_challenge_2
             });
 
             app.UseSwagger();
-            app.UseSwaggerUI (config=>
-            {
-                config.SwaggerEndpoint("v1/swagger.json", "My Campaign API V1");
-            });
+            app.UseSwaggerUI(config =>
+           {
+               config.SwaggerEndpoint("v1/swagger.json", "My Campaign API V1");
+           });
         }
     }
 }

@@ -1,27 +1,29 @@
-version: '3.1'
+version: '3.4'
 
 services:
-
+  semasio_challenge_2:
+    image: ${DOCKER_REGISTRY-}semasiochallenge2
+    build:
+      context: .
+      dockerfile: Dockerfile
   mongo:
     container_name: mongo
     image: mongo
     restart: always
     volumes:
-      - ${WEBAPP_STORAGE_HOME}/site:/data/db
-      #- ./data:/data/db
+        - ${WEBAPP_STORAGE_HOME}/site:/data/db
     ports:
-      - "27017:27017"
-      - "28017:28017"
+        - "27017:27017"
 
   web:
-        build: .
-        ports:
-            - "8000:80"
-            - "44348:443"
-        depends_on:
-            - mongo
-        volumes:
-            - ${HOME}/.microsoft/usersecrets/:/root/.microsoft/usersecrets
-            - ${HOME}/.aspnet/https:/root/.aspnet/https/
-        links:
-          - mongo
+    build:
+        context: .
+    ports:
+        - "8000:80"
+        - "44348:443"
+    depends_on:
+        - mongo
+    volumes:
+        - ${HOME}/.microsoft/usersecrets/:/root/.microsoft/usersecrets
+    links:
+        - mongo

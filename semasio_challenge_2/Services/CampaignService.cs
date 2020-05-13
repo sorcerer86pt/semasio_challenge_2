@@ -1,18 +1,15 @@
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using semasio_challenge_2.Models;
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace semasio_challenge_2.Services
 {
-	public class CampaignService
+    public class CampaignService
     {
         private readonly IMongoCollection<Campaign> _campaigns;
 
@@ -20,7 +17,8 @@ namespace semasio_challenge_2.Services
         {
             MongoClient client = new MongoClient(config.GetConnectionString("CampaignsDB"));
             var database = client.GetDatabase("CampaignDB");
-			_campaigns = database.GetCollection<Campaign>("Campaigns");        }
+            _campaigns = database.GetCollection<Campaign>("Campaigns");
+        }
 
         /**
          * Returns all campaigns
@@ -38,7 +36,7 @@ namespace semasio_challenge_2.Services
             return campaign;
         }
 
-        public async Task <List<Campaign>> Import(List<Campaign> campaigns)
+        public async Task<List<Campaign>> Import(List<Campaign> campaigns)
         {
             await _campaigns.InsertManyAsync(campaigns);
             return campaigns;
@@ -46,13 +44,13 @@ namespace semasio_challenge_2.Services
 
         public async Task<string> ExportAsJsonString()
         {
-            return  await GetCampaignJsonAsync();
+            return await GetCampaignJsonAsync();
 
         }
 
         public async Task<Campaign> Update(string id, Campaign campaign)
         {
-            await _campaigns.ReplaceOneAsync(cpgupd => cpgupd.Id ==id , campaign);
+            await _campaigns.ReplaceOneAsync(cpgupd => cpgupd.Id == id, campaign);
             return campaign;
         }
 
@@ -70,7 +68,7 @@ namespace semasio_challenge_2.Services
 
         private async Task AsyncDistributeBudget(string id)
         {
-           await  Task.Run(() => DivideBudgetEqually(id));
+            await Task.Run(() => DivideBudgetEqually(id));
 
 
         }
@@ -89,14 +87,14 @@ namespace semasio_challenge_2.Services
         {
             Campaign campaignRecord = _campaigns.Find(cpg => cpg.Id == campaignID).FirstOrDefault();
             int campaignBudget = campaignRecord.CampaignBudget;
-            int numStrategies = campaignRecord.Strategies.Length;
+            int numStrategies = campaignRecord.Strategies.Count;
 
             int equalBudget = campaignBudget / numStrategies;
 
-            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id ,campaignID);
+            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id, campaignID);
 
 
-            var campaignUpdate = Builders<Campaign>.Update.Set(cpg=> cpg.CampaignBudget, 0);
+            var campaignUpdate = Builders<Campaign>.Update.Set(cpg => cpg.CampaignBudget, 0);
             var strategyUpdate = Builders<Campaign>.Update.Set(cpg => cpg.Strategies[-1].StrategyBudget, equalBudget);
 
             // update the each strategy budget to equal value
@@ -104,7 +102,7 @@ namespace semasio_challenge_2.Services
 
             // update the campaign budget to 0, since we've distributed all the budget to the strategies
             _campaigns.UpdateOne(campaignFilter, campaignUpdate);
-            
+
 
         }
 
@@ -114,6 +112,6 @@ namespace semasio_challenge_2.Services
             return jsonCampaign;
         }
 
-       
+
     }
 }

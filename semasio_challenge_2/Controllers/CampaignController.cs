@@ -94,7 +94,7 @@ namespace semasio_challenge_2.Controllers
         public async Task<ActionResult<string>> ExportJson()
         {
             var tst = await _campaignService.ExportAsJsonString();
-            return CreatedAtRoute("Get", tst);
+            return Ok(tst);
         }
 
     }
