@@ -21,6 +21,8 @@ namespace semasio_challenge_2.Models
         typeof(OutdoorStrategy))]
     public class Strategy
     {
+        [JsonProperty("strategyName")]
+        public string StrategyName { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]  // JSON.Net
         [BsonRepresentation(BsonType.String)]  // Mongo

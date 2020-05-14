@@ -97,5 +97,12 @@ namespace semasio_challenge_2.Controllers
             return Ok(tst);
         }
 
+        [HttpPost("/ObtainBestOnlineStrategy")]
+        public async Task<ActionResult<string>> ObtainBestOnlineStrategy([FromBody] OnlineStrategyParameters parameters)
+        {
+            string result = await _campaignService.GetBestOnlineFromParams(parameters);
+            return Ok(result);
+        } 
+
     }
 }
