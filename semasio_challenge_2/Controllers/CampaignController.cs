@@ -1,21 +1,30 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using semasio_challenge_2.Models;
 using semasio_challenge_2.Services;
 
 namespace semasio_challenge_2.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class CampaignController : ControllerBase
     {
 
         private readonly CampaignService _campaignService;
+        const string folderName = "files";
+        readonly string folderPath = Path.Combine(Directory.GetCurrentDirectory(), folderName);
 
         public CampaignController(CampaignService campaignService)
         {
             _campaignService = campaignService;
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
         }
 
 
@@ -74,29 +83,37 @@ namespace semasio_challenge_2.Controllers
 
         // POST: api/Campaign/Import
         //
-        [HttpPost("/Import")]
-        public async Task<ActionResult<List<Campaign>>> Import([FromBody] List<Campaign> campaigns)
+        [HttpPost("/Import", Name = "Import")]
+        public async Task<IActionResult> Import([FromBody] IFormFile campaignFile)
         {
-            await _campaignService.Import(campaigns);
+            string resultFilePath = Path.Combine(folderPath, campaignFile.FileName);
+            using (var fileContentStream = new MemoryStream())
+            {
+                await campaignFile.CopyToAsync(fileContentStream);
+                await System.IO.File.WriteAllBytesAsync(resultFilePath, fileContentStream.ToArray());
+            }
+            var campaigns = await _campaignService.Import(resultFilePath);
             return CreatedAtRoute("Get", campaigns);
         }
 
         // GET: api/Campaign/DistributeEqually/{ID}
-        [HttpGet("/DistributeEqually/{id}")]
+        [HttpGet("/DistributeEqually/{id}", Name = "DistributeEqually")]
         public async Task DistributeCampaignBudger(string id)
         {
             await _campaignService.DistributeBudget(id);
         }
 
         //GET: api/Campaign/ExportJson
-        [HttpGet("/ExportJson")]
-        public async Task<ActionResult<string>> ExportJson()
+        [HttpGet("/ExportJson", Name = "ExportJson")]
+        public async Task ExportJson()
         {
             var tst = await _campaignService.ExportAsJsonString();
-            return Ok(tst);
+            Response.ContentType = "text/plain";
+            await Response.SendFileAsync(tst);
+            System.IO.File.Delete(tst);
         }
 
-        [HttpPost("/ObtainBestOnlineStrategy")]
+        [HttpPost("/ObtainBestOnlineStrategy", Name = "ObtainBestOnlineStrategy")]
         public async Task<ActionResult<string>> ObtainBestOnlineStrategy([FromBody] OnlineStrategyParameters parameters)
         {
             string result = await _campaignService.GetBestOnlineFromParams(parameters);

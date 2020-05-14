@@ -31,6 +31,7 @@ namespace semasio_challenge_2
                     Version = "v1.0",
                     Description = "Campaign CRUD API"
                 });
+                config.OperationFilter<SwaggerFileOperationFilter>();
             });
         }
 

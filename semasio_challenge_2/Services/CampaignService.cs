@@ -8,7 +8,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Driver.Linq;
 using Microsoft.VisualStudio.Web.CodeGeneration;
-using System.Security.Cryptography;
+using System.IO;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
 
 namespace semasio_challenge_2.Services
 {
@@ -25,56 +27,101 @@ namespace semasio_challenge_2.Services
             _consoleLogger = new ConsoleLogger();
         }
 
+        #region Public Interface
+
         /**
          * Returns all campaigns
          */
         public async Task<List<Campaign>> Get() => await _campaigns.Find(Builders<Campaign>.Filter.Empty).ToListAsync();
 
+        /**
+         * Return one campaign
+         */
         public async Task<Campaign> Get(string campaignId)
         {
             return await _campaigns.Find(cpg => cpg.Id == campaignId).FirstOrDefaultAsync();
         }
 
+        /**
+         * Insert a Campaign Record
+         */
         public async Task<Campaign> Create(Campaign campaign)
         {
             await _campaigns.InsertOneAsync(campaign);
             return campaign;
         }
 
-        public async Task<List<Campaign>> Import(List<Campaign> campaigns)
+        /**
+         * Given a filePath attempts to read the file and enter as many records as possible
+         */
+        public async Task<List<Campaign>> Import(string filePath)
         {
-            await _campaigns.InsertManyAsync(campaigns);
-            return campaigns;
+            List<Campaign> insertedCampaigns = new List<Campaign>();
+
+            using (var streamReader = new StreamReader(filePath))
+            {
+                string line;
+                while ((line = await streamReader.ReadLineAsync()) != null)
+                {
+                    using (var jsonReader = new JsonReader(line))
+                    {
+                        var context = BsonDeserializationContext.CreateRoot(jsonReader);
+                        var document = _campaigns.DocumentSerializer.Deserialize(context);
+                        await _campaigns.InsertOneAsync(document);
+                        insertedCampaigns.Add(document);
+                    }
+                }
+            }
+            return insertedCampaigns;
+            
         }
 
+        /**
+         * Exports the campaigns as Json
+         */
         public async Task<string> ExportAsJsonString()
         {
-            return await GetCampaignJsonAsync();
+            return await GenerateExportJsonFile();
 
         }
 
+        /**
+         * Update (Replace) the campaign
+         */
         public async Task<Campaign> Update(string id, Campaign campaign)
         {
             await _campaigns.ReplaceOneAsync(cpgupd => cpgupd.Id == id, campaign);
             return campaign;
         }
 
+        /**
+         * Delete a Campaign
+         */
         public async Task<DeleteResult> Remove(string id)
         {
             var filter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id, id);
             return await _campaigns.DeleteOneAsync(filter);
         }
 
+        /**
+         * Distributes the Campaign Budget equally along all defined strategies for that campaign
+         */
         public async Task DistributeBudget(string id)
         {
             await AsyncDistributeBudget(id);
         }
 
+        /**
+         * Returns the best online strategy according to the given params and update it's strategy budget
+         */
         public async Task<string> GetBestOnlineFromParams(OnlineStrategyParameters parameters)
         {
             return await Task.Run(() => GetBestOnlineStrategy(parameters));
         }
 
+        #endregion
+
+        #region Private methods
         private string GetBestOnlineStrategy(OnlineStrategyParameters parameters)
         {
             string bestStrategy = null;
@@ -115,10 +162,30 @@ namespace semasio_challenge_2.Services
 
         }
 
-        private async Task<string> GetCampaignJsonAsync()
+        private async Task<string> GenerateExportJsonFile()
         {
-            return await Task.Run(() => ReturnCampaignAsJson());
+
+            string outputFileName = Path.GetTempFileName();
+            using (var streamWriter = new StreamWriter(outputFileName))
+            {
+                await _campaigns.Find(new BsonDocument())
+                    .ForEachAsync(async (document) =>
+                    {
+                        using (var stringWriter = new StringWriter())
+                        using (var jsonWriter = new JsonWriter(stringWriter))
+                        {
+                            var context = BsonSerializationContext.CreateRoot(jsonWriter);
+                            _campaigns.DocumentSerializer.Serialize(context, document);
+                            var line = stringWriter.ToString();
+                            await streamWriter.WriteLineAsync(line);
+                        }
+                    });
+            }
+            return outputFileName;
+
+
         }
+
 
         /**
          * Divide the budget of a campaign equally between all defined strategies for that campaign
@@ -130,7 +197,10 @@ namespace semasio_challenge_2.Services
             Campaign campaignRecord = _campaigns.Find(cpg => cpg.Id == campaignID).FirstOrDefault();
             int campaignBudget = campaignRecord.CampaignBudget;
             int numStrategies = campaignRecord.Strategies.Count;
-
+            if (campaignBudget == 0)
+            {
+                return;
+            }
             int equalBudget = campaignBudget / numStrategies;
             _consoleLogger.LogMessage($"Got Budget: {campaignBudget}, Got Number Strategies: {numStrategies}, Divided Budget: {equalBudget}", LogMessageLevel.Information);
 
@@ -162,12 +232,8 @@ namespace semasio_challenge_2.Services
         }
 
 
+        #endregion
 
-        private string ReturnCampaignAsJson()
-        {
-            var jsonCampaign = _campaigns.ToJson();
-            return jsonCampaign;
-        }
 
 
     }
