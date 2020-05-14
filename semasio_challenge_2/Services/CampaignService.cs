@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Driver.Linq;
 using Microsoft.VisualStudio.Web.CodeGeneration;
+using System.Security.Cryptography;
 
 namespace semasio_challenge_2.Services
 {
@@ -78,31 +79,31 @@ namespace semasio_challenge_2.Services
         {
             string bestStrategy = null;
             Campaign cpg = _campaigns.Find(cpg => cpg.Id == parameters.Id).FirstOrDefault();
-           
-            
-            foreach(Strategy strategy in cpg.Strategies)
+
+
+            foreach (Strategy strategy in cpg.Strategies)
             {
-                if( strategy.StrategyType == StrategyType.Online && 
-                    strategy.ExtraElements.URL == parameters.URL && 
+                if (strategy.StrategyType == StrategyType.Online &&
+                    strategy.ExtraElements.URL == parameters.URL &&
                     strategy.StrategyBudget >= parameters.Budget)
                 {
                     bestStrategy = strategy.StrategyName;
                     int remainingBudget = strategy.StrategyBudget - parameters.Budget;
 
                     FilterDefinition<Campaign> filter = Builders<Campaign>.Filter.And(
-                        Builders<Campaign>.Filter.Eq(cpg=> cpg.Id, parameters.Id),
-                        Builders<Campaign>.Filter.ElemMatch<Strategy>(cpg=> cpg.Strategies, x=>x.StrategyName == bestStrategy)
+                        Builders<Campaign>.Filter.Eq(cpg => cpg.Id, parameters.Id),
+                        Builders<Campaign>.Filter.ElemMatch<Strategy>(cpg => cpg.Strategies, x => x.StrategyName == bestStrategy)
 
                         );
 
                     UpdateDefinition<Campaign> update = Builders<Campaign>.Update.Set(cpg => cpg.Strategies[-1].StrategyBudget, remainingBudget);
-                    
+
                     _campaigns.FindOneAndUpdateAsync(filter, update);
-                    
+
                     break;
                 }
             }
-            
+
 
             return bestStrategy;
         }
@@ -124,7 +125,7 @@ namespace semasio_challenge_2.Services
          * so if a campaign has 3000 of budget and 3 strategies, 
          * each strategy would get 1000, and the campaign budget is set to 0
          */
-        private void DivideBudgetEqually(string campaignID)
+        private async void DivideBudgetEqually(string campaignID)
         {
             Campaign campaignRecord = _campaigns.Find(cpg => cpg.Id == campaignID).FirstOrDefault();
             int campaignBudget = campaignRecord.CampaignBudget;
@@ -133,26 +134,34 @@ namespace semasio_challenge_2.Services
             int equalBudget = campaignBudget / numStrategies;
             _consoleLogger.LogMessage($"Got Budget: {campaignBudget}, Got Number Strategies: {numStrategies}, Divided Budget: {equalBudget}", LogMessageLevel.Information);
 
-            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id, campaignID)
-                 & Builders<Campaign>.Filter.ElemMatch<Strategy>(cpg => cpg.Strategies, x => x.StrategyBudget != equalBudget);
+            var campaignFilter = Builders<Campaign>.Filter.Eq(cpg => cpg.Id, campaignID);
+            // mongo c# driver has yet to have a fluent syntax for Array Filters.
+            var updateDefinition = Builders<Campaign>.Update.Set("Strategies.$[stra].StrategyBudget", equalBudget);
 
-
-            var strategyUpdate = Builders<Campaign>.Update.Set(cpg => cpg.Strategies[-1].StrategyBudget, equalBudget);
-            var campaignUpdate = Builders<Campaign>.Update.Set(cpg => cpg.CampaignBudget, 0);
-
-            _consoleLogger.LogMessage($"strategy Update Instruction = {strategyUpdate.ToJson()}", LogMessageLevel.Information);
-            _consoleLogger.LogMessage($"campaign Update Instruction = {campaignUpdate.ToJson()}", LogMessageLevel.Information);
+            var arrayFilterStratergy = new List<ArrayFilterDefinition>();
+            arrayFilterStratergy.Add(
+                 new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument("stra.StrategyBudget", new BsonDocument("$gte", 0)))
+            );
 
             // update the each strategy budget to equal value
-            var resultStrategy = _campaigns.FindOneAndUpdateAsync<Campaign>(campaignFilter, strategyUpdate);
+            var resultStrategy = await _campaigns.UpdateOneAsync(
+                campaignFilter,
+                updateDefinition,
+                new UpdateOptions { ArrayFilters = arrayFilterStratergy });
 
+            if (resultStrategy.MatchedCount > 0)
+            {
+                _consoleLogger.LogMessage($"Matched {resultStrategy.ModifiedCount} records");
+            }
+
+            var campaignUpdate = Builders<Campaign>.Update.Set(cpg => cpg.CampaignBudget, 0);
             // update the campaign budget to 0, since we've distributed all the budget to the strategies
-            var resultCampaign = _campaigns.FindOneAndUpdateAsync<Campaign>(campaignFilter, campaignUpdate);
+            var resultCampaign = await _campaigns.FindOneAndUpdateAsync<Campaign>(campaignFilter, campaignUpdate);
 
 
         }
 
-       
+
 
         private string ReturnCampaignAsJson()
         {
