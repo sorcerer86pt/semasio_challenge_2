@@ -4,13 +4,10 @@ using MongoDB.Driver;
 using semasio_challenge_2.Models;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 
 using System.Threading.Tasks;
 using MongoDB.Driver.Linq;
 using Microsoft.VisualStudio.Web.CodeGeneration;
-using System;
-using System.Security.Cryptography;
 
 namespace semasio_challenge_2.Services
 {

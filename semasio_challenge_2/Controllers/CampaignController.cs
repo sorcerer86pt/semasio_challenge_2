@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson.IO;
 using semasio_challenge_2.Models;
 using semasio_challenge_2.Services;
 
